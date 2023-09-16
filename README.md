@@ -5,7 +5,7 @@ This project is done in the course ["Advanced Physical Design using OpenLANE/Sky
 ## Table of Contents
 
 - [Day1-Introduction](#Day1-Introduction)
-- - [Day2-Good Floorplan vs bad Floorplan](#Day2-Good-Floorplan-vs-bad-Floorplan)
+- [Day2-Good Floorplan vs bad Floorplan](#Day2-Good-Floorplan-vs-bad-Floorplan)
   
 # Day1-Introduction
 
