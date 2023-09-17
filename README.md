@@ -635,3 +635,273 @@ spacing xhrpoly,uhrpoly,xpc allpolynonres 480 touching_illegal \
 
 
 </details>
+
+
+## DAY 4 
+
+<details>
+
+<summary> Timing Analysis and Clock Tree Synthesis (CTS) </summary>
+
+## Standard Cell LEF generation
+
+During Placement, entire mag information is not necessary. Only the PR boundary, I/O ports, Power and ground rails of the cell is required. This information is defined in LEF file.
+The main objective is to extract lef from the mag file and plug into our design flow.
+
+# Grid into Track info
+
+ **Track** :A path or a line on which metal layers are drawn for routing. Track is used to define the height of the standard cell. 
+
+To implement our own stdcell, few guidelines must be followed 
+ - I/O ports must lie on the intersection on Horizontal and vertical tracks
+ - Width and Height of standard cell are odd mutliples of Horizontal track pitch and Vertical track pitch
+
+This information is defined in ``tracks.info``. 
+
+```
+li1 X 0.23 0.46 
+li1 Y 0.17 0.34
+```
+
+To ensure that ports lie on the intersection point, the grid spacing in Magic (tkcon) must be changed to the li1 X and li1 Y values. After providing the command, we have following:
+
+```
+grid 0.46um 0.34um 0.23um 0.17um
+```
+
+![1](https://github.com/SahilSira/Advanced_Physical_Design_Using_OpenLane/assets/140998855/ee56fc6a-82c3-491e-8834-fc28708e0b01)
+
+## Create Port Definition: 
+
+However, certain properties and definitions need to be set to the pins of the cell. For LEF files, a cell that contains ports is written as a macro cell, and the ports are the declared as PINs of the macro.
+
+The way to define a port is through Magic console and following are the steps:
+- In Magic Layout window, first source the .mag file for the design (here inverter). Then Edit >> Text which opens up a dialogue box.
+- When you double press S at the I/O lables, the text automatically takes the string name and size. Ensure the Port enable checkbox is checked and default checkbox is unchecked as shown in the figure:
+
+![2](https://github.com/SahilSira/Advanced_Physical_Design_Using_OpenLane/assets/140998855/c5c648b4-f8f3-4cb4-b3b9-e7312137fb30)
+
+
+- In the above figure, The number in the textarea near enable checkbox defines the order in which the ports will be written in LEF file (0 being the first).
+
+-  For power and ground layers, the definition could be same or different than the signal layer. Here, ground and power connectivity are taken from metal1
+
+## Set port class and port use attributes for layout 
+
+After defining ports, the next step is setting port class and port use attributes.
+
+Select port A in magic:
+
+```
+port class input
+port use signal
+```
+
+Select Y area
+
+```
+port class output
+port use signal
+```
+
+Select VPWR area
+
+```
+port class inout
+port use power
+```
+
+Select VGND area
+
+```
+port class inout
+port use ground
+```
+
+![3](https://github.com/SahilSira/Advanced_Physical_Design_Using_OpenLane/assets/140998855/2ed0afb9-808e-47d7-90d3-2c0d366a8edc)
+
+
+
+## Custom cell naming and lef extraction.
+
+Name the custom cell through tkcon window as ```sky130_vsdinv.mag```.
+
+We generate lef file by command:
+
+```
+lef write
+```
+
+This generates sky130_vsdinv.lef file.
+
+![5](https://github.com/SahilSira/Advanced_Physical_Design_Using_OpenLane/assets/140998855/9b92d55d-2fa1-466c-8846-216bb4222d51)
+
+## Steps to include custom cell in ASIC design
+
+We have created a custom standard cell in previous steps of an inverter. Copy lef file, sky130_fd_sc_hd_typical.lib, sky130_fd_sc_hd_slow.lib & sky130_fd_sc_hd_fast.lib to src folder of picorv32a from libs folder vsdstdcelldesign. Then modify the config.tcl as follows.
+
+```
+# Design
+set ::env(DESIGN_NAME) "picorv32a"
+
+set ::env(VERILOG_FILES) "$::env(DESIGN_DIR)/src/picorv32a.v"
+
+set ::env(CLOCK_PORT) "clk"
+set ::env(CLOCK_NET) $::env(CLOCK_PORT)
+
+set ::env(GLB_RESIZER_TIMING_OPTIMIZATIONS) {1}
+
+set ::env(LIB_SYNTH) "$::env(OPENLANE_ROOT)/designs/picorv32a/src/sky130_fd_sc_hd__typical.lib"
+set ::env(LIB_SLOWEST) "$::env(OPENLANE_ROOT)/designs/picorv32a/src/sky130_fd_sc_hd__slow.lib"
+set ::env(LIB_FASTEST) "$::env(OPENLANE_ROOT)/designs/picorv32a/src/sky130_fd_sc_hd__fast.lib"
+set ::env(LIB_TYPICAL) "$::env(OPENLANE_ROOT)/designs/picorv32a/src/sky130_fd_sc_hd__typical.lib"
+
+set ::env(EXTRA_LEFS) [glob $::env(OPENLANE_ROOT)/designs/$::env(DESIGN_NAME)/src/*.lef]
+
+set filename $::env(DESIGN_DIR)/$::env(PDK)_$::env(STD_CELL_LIBRARY)_config.tcl
+if { [file exists $filename] == 1} {
+	source $filename
+}
+
+```
+
+To integrate standard cell in openlane flow after `` make mount `` , perform following commands:
+
+```
+prep -design picorv32a -tag RUN_2023.09.09_20.37.18 -overwrite 
+set lefs [glob $::env(DESIGN_DIR)/src/*.lef]
+add_lefs -src $lefs
+run_synthesis
+```
+
+synthesis report :
+
+![6](https://github.com/SahilSira/Advanced_Physical_Design_Using_OpenLane/assets/140998855/e76389b2-77a0-45e9-bdf3-4902418fee88)
+
+## Delay Tables
+
+Basically, Delay is a parameter that has huge impact on our cells in the design. Delay decides each and every other factor in timing. 
+For a cell with different size, threshold voltages, delay model table is created where we can it as timing table.
+```Delay of a cell depends on input transition and out load```. 
+
+Lets say two scenarios, 
+we have long wire and the cell(X1) is sitting at the end of the wire : the delay of this cell will be different because of the bad transition that caused due to the resistance and capcitances on the long wire.
+we have the same cell sitting at the end of the short wire: the delay of this will be different since the tarn is not that bad comapred to the earlier scenario.
+Eventhough both are same cells, depending upon the input tran, the delay got chaned. Same goes with o/p load also.
+
+VLSI engineers have identified specific constraints when inserting buffers to preserve signal integrity. They've noticed that each buffer level must maintain consistent sizing, but their delays can vary depending on the load they drive. To address this, they introduced the concept of "delay tables," which essentially consist of 2D arrays containing values for input slew and load capacitance, each associated with different buffer sizes. These tables serve as timing models for the design.
+
+When the algorithm works with these delay tables, it utilizes the provided input slew and load capacitance values to compute the corresponding delay values for the buffers. In cases where the precise delay data is not readily available, the algorithm employs a technique of interpolation to determine the closest available data points and extrapolates from them to estimate the required delay values.
+
+<img width="1281" alt="7" src="https://github.com/SahilSira/Advanced_Physical_Design_Using_OpenLane/assets/140998855/fbf7698a-1fef-4e82-a02c-952f5679103b">
+
+
+## Openlane steps with custom standard cell
+
+We perform synthesis and found that it has positive slack and met timing constraints.
+
+During Floorplan,``` 504 endcaps, 6731 tapcells ``` got placed. Design has 275 original rows
+
+Now ``` run_placement```
+
+After placement, we check for legality &To check the layout invoke magic from the results/placement directory:
+
+```
+ magic -T /home/sahil/.volare/sky130A/libs.tech/magic/sky130A.tech lef read ../../tmp/merged.lef def read picorv32.def &
+
+```
+
+![8](https://github.com/SahilSira/Advanced_Physical_Design_Using_OpenLane/assets/140998855/65fce9fc-aff9-4acc-8178-4489dbf90ecd)
+
+
+</details>
+
+<details>
+	<summary> Post-synthesis timing analysis Using OpenSTA </summary>
+
+Timing analysis is carried out outside the openLANE flow using OpenSTA tool. For this, ```pre_sta.conf``` is required to carry out the STA analysis. Invoke OpenSTA outside the openLANE flow as follows:
+ 
+```
+sta pre_sta.conf
+```
+
+sdc file for OpenSTA is modified like this:
+
+base.sdc is located in vsdstdcelldesigns/extras directory.
+So, I copied it into our design folder using
+
+``` cp my_base.sdc /home/OpenLane/designs/picorv32a/src/ ```
+
+Since clock is propagated only once we do CTS, In placement stage, clock is considered to be ideal. So only setup slack is taken into consideration before CTS.
+
+``` 
+Setup time: minimum time required for the data to be stable before the active edge of the clock to get properly captured.
+
+Setup slack : data required time - data arrival time 
+```
+
+clock is generated from PLL which has inbuilt circuit which cells and some logic. There might variations in the clock generation depending upon the ckt. These variations are collectivity known as clock uncertainity. In that jitter is one of the parameter. It is uncertain that clock might come at that exact time withought any deviation. That is why it is called clock_uncertainity
+Skew, Jitter and Margin comes into clock_uncertainity
+
+```  Clock Jitter : deviation of clock edge from its original position. ```
+
+From the timing report, we can improve slack by upsizing the cells i.e., by replacing the cells with high drive strength and we can see significant changes in the slack.
+</details>
+<details>
+<summary>Clock Tree Synthesis using Tritoncts</summary>
+
+Clock tree synthesis (CTS) can be implemented in various ways, and the choice of the specific technique depends on the design requirements, constraints, and goals. Here are some different types or approaches to clock tree synthesis:
+
+Balanced Tree CTS:
+In a balanced tree CTS, the clock signal is distributed in a balanced manner, often resembling a binary tree structure.
+This approach aims to provide roughly equal path lengths to all clock sinks (flip-flops) to minimize clock skew.
+It's relatively straightforward to implement and analyze but may not be the most power-efficient solution.
+
+H-tree CTS:
+An H-tree CTS uses a hierarchical tree structure, resembling the letter "H."
+It is particularly effective for distributing clock signals across large chip areas.
+The hierarchical structure can help reduce clock skew and optimize power consumption.
+
+Star CTS:
+In a star CTS, the clock signal is distributed from a single central point (like a star) to all the flip-flops.
+This approach simplifies clock distribution and minimizes clock skew but may require a higher number of buffers near the source.
+
+Global-Local CTS:
+Global-Local CTS is a hybrid approach that combines elements of both star and tree topologies.
+The global clock tree distributes the clock signal to major clock domains, while local trees within each domain further distribute the clock.
+This approach balances between global and local optimization, addressing both chip-wide and domain-specific clocking requirements.
+
+Mesh CTS:
+In a mesh CTS, clock wires are arranged in a mesh-like grid pattern, and each flip-flop is connected to the nearest available clock wire.
+It is often used in highly regular and structured designs, such as memory arrays.
+Mesh CTS can offer a balance between simplicity and skew minimization.
+
+Adaptive CTS:
+Adaptive CTS techniques adjust the clock tree structure dynamically based on the timing and congestion constraints of the design.
+This approach allows for greater flexibility and adaptability in meeting design goals but may be more complex to implement.
+
+# crosstalk in VLSI:
+Impact: Crosstalk is a significant concern in VLSI design due to the high integration density of components on a chip. Uncontrolled crosstalk can lead to data corruption, timing violations, and increased power consumption.
+Mitigation: VLSI designers employ various techniques to mitigate crosstalk, such as optimizing layout and routing, using appropriate shielding, implementing proper clock distribution strategies, and utilizing clock gating to reduce dynamic power consumption when logic is idle
+
+# Clock Net Shielding in VLSI:
+Purpose: In VLSI circuits, the clock distribution network is crucial for synchronous operation. Clock signals must reach all parts of the chip while minimizing skew and maintaining signal integrity.
+Shielding Techniques: VLSI designers may use shielding techniques to isolate the clock network from other signals, reducing the risk of interference. This can include dedicated clock routing layers, clock tree synthesis algorithms, and buffer insertion to manage clock distribution more effectively.
+Clock Domain Isolation: VLSI designs often have multiple clock domains. Shielding and proper clock gating help ensure that clock signals do not propagate between domains, avoiding metastability issues and maintaining synchronization.
+
+# test:
+type this in openlane
+
+```
+echo $::env(CTS_CLK_BUFFER_LIST)
+set $::env(CTS_CLK_BUFFER_LIST) [lreplace $::env(CTS_CLK_BUFFER_LIST) 0 0]
+echo $::env(CTS_CLK_BUFFER_LIST)
+```
+
+After changing the files, load the placement stage def file and run cts again. 
+Now, again run OpenROAD and create another db and everything else is same.
+Report after post_cts is
+
+``` Setup slack - 2.2379 , Hold slack - 0.1869 ```
+
+</details>
