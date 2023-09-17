@@ -6,7 +6,11 @@ This project is done in the course ["Advanced Physical Design using OpenLANE/Sky
 
 - [Day1-Introduction](#Day1-Introduction)
 - [Day2-Good Floorplan vs bad Floorplan](#Day2-Good-Floorplan-vs-bad-Floorplan)
-  
+  [Day 3 : Design Library Cell using ngspice simulations](#Day-3-Design Library Cell using ngspice simulations)
+  [Day 4 : Pre-layout Timing analysis and CTS](#Day4-Pre-layout Timing analysis and CTS)
+  [Day 5 : Final steps in RTL2GDS](#Day5-Final steps in RTL2GDS)
+
+
 # Day1-Introduction
 
 <details>
@@ -345,7 +349,7 @@ Low transition time = time(slew_high_fall_thr) - time (slew_low_fall_thr)
 
 </details>
 
-# DAY3 Design Library Cell using ngspice simulations
+# DAY3-Design Library Cell using ngspice simulations
 
 <details>
   <summary>CMOS inverter ngspice simulations </summary>
@@ -637,7 +641,7 @@ spacing xhrpoly,uhrpoly,xpc allpolynonres 480 touching_illegal \
 </details>
 
 
-## DAY 4 
+## Day4-Pre-layout Timing analysis and CTS 
 
 <details>
 
@@ -907,7 +911,7 @@ Report after post_cts is
 </details>
 
 
-## DAY 5
+## Day5-Final steps in RTL2GDS
 
 <details>
 	<summary>Final steps in RTL2GDS</summary>
