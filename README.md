@@ -344,3 +344,294 @@ Low transition time = time(slew_high_fall_thr) - time (slew_low_fall_thr)
 ```
 
 </details>
+
+# DAY3 Design Library Cell using ngspice simulations
+
+<details>
+  <summary>CMOS inverter ngspice simulations </summary>
+  ``ngspice``  is opesoure engine where simulations are done.
+
+  ### IO Placer revision
+
+ - PnR is a iterative flow and hence, we can make changes to the environment variables in the fly to observe the changes in our design. 
+ - Let us say If I want to change my pin configuration along the core from equvi distance randomly placed to someother placement, we just set that IO mode variable on command prompt as shown below
+ ```
+ set ::env(FP_IO_MODE) 2
+```
+## SPICE Deck Creation and Simulation for CMOS inverter
+
+- Before performing a SPICE simulation we need to create SPICE Deck
+SPICE Deck provides information about the following:
+- Component connectivity - Connectivity of the Vdd, Vss,Vin, substrate. Substrate tunes the threshold voltage of the MOS.
+- component values - values of PMOS and NMOS, Output load, Input Gate Voltage, supply voltage.
+- Node Identification and naming - Nodes are required to define the SPICE Netlist
+     For example ```M1 out in vdd vdd pmos w = 0.375u L = 0.25u``` , ```cload out 0 10f```
+- Simulation commands
+- Model file - information of parameters related to transistors
+Simulation of CMOS using different width and lengths. From the waveform, irrespective of switching the shape of it are almost same.
+
+![1](https://github.com/SahilSira/Advanced_Physical_Design_Using_OpenLane/assets/140998855/c77e3b8a-2ca8-41f0-81c0-1c6f59f138ae)
+
+
+From the waveform we can see the characteristics are maintained  across all sizes of CMOS. So CMOS as a circuit is a robust device hence use in designing of logic gates. Parameters that define the robustness of the CMOS are
+
+## Switching Threshold Vm
+
+- The Switching Threshold of a CMOS inverter is the point where the Vin = Vout on the DC Transfer characreristics. 
+- At this point, both the transistors are in saturation region, means both are turned on and have high chances of current flowing driectly from VDD to Ground called Leakage current.
+ 
+![2](https://github.com/SahilSira/Advanced_Physical_Design_Using_OpenLane/assets/140998855/b10cbb91-49f4-4152-a46a-8b88e1131618)
+
+
+Through transient analysis, we calculate the rise and fall delays of the CMOS by SPICE Simulation. As we know delays are calculated at 50% of the final values.
+
+
+## Lab steps to git clone vsdstdcelldesign
+
+- First, clone the required mag files and spicemodels of inverter,pmos and nmos sky130. The command to clone files from github link is:
+```
+git clone https://github.com/nickson-jose/vsdstdcelldesign.git
+```
+once I run this command, it will create ``vsdstdcelldesign`` folder in openlane directory.
+
+Inorder to open the mag file and run magic go to the directory
+
+For layout we run magic command
+
+``` magic -T sky130A.tech sky130_inv.mag & ```
+
+Ampersand at the end makes the next prompt line free, otherwise magic keeps the prompt line busy. Once we run the magic command we get the layout of the inverter in the magic window
+
+![3](https://github.com/SahilSira/Advanced_Physical_Design_Using_OpenLane/assets/140998855/c48ea6d7-b70c-4af1-b70e-d3d9473a97cf)
+
+
+</details>
+
+<details>
+  <summary>Inception of Layout and CMOS Fabrication Process
+</summary>
+  
+## Mask CMOS Fabrication
+
+The 16-mask CMOS (Complementary Metal-Oxide-Semiconductor) fabrication process involves several crucial steps for creating integrated circuits. Let's break it down with some jargon:
+
+1. **Substrate Selection**:
+   - In the initial phase, the appropriate semiconductor substrate is chosen.
+
+2. **Active Region Creation**:
+   - To isolate the active regions for transistors, the process begins with the deposition of SiO2 and Si3N4 layers, followed by photolithography and silicon nitride etching.
+   - This is known as LOCOS (Local Oxidation of Silicon), where oxide is grown in certain regions.
+   - Subsequently, Si3N4 is removed using hot phosphoric acid.
+
+3. **N-Well and P-Well Formation**:
+   - The N-well and P-well regions are created separately.
+   - P-well formation involves photolithography and ion implantation of p-type Boron material into the p-substrate.
+   - N-well is formed similarly with n-type Phosphorus material.
+   - High-temperature furnace processes drive-in diffusion to establish well depths, known as the tub process.
+
+4. **Gate Formation**:
+   - The gate is a pivotal CMOS transistor terminal that controls threshold voltages for transistor switching.
+   - A polysilicon layer is deposited and photolithography techniques are applied to create NMOS and PMOS gates.
+   - Important parameters for gate formation include oxide capacitance and doping concentration.
+
+5. **Lightly Doped Drain (LDD) Formation**:
+   - LDD is created to mitigate hot electron and short channel effects.
+
+6. **Source & Drain Formation**:
+   - Thin oxide layers are added to avoid channel effects during ion implantation.
+   - N+ and P+ implants are performed using Arsenic implantation and high-temperature annealing.
+
+7. **Local Interconnect Formation**:
+   - Thin screen oxide is removed through etching in HF solution.
+   - Titanium deposition through sputtering is initiated.
+   - Heat treatment results in chemical reactions, producing low-resistant titanium silicon dioxide for interconnect contacts and titanium nitride for top-level connections, enabling local communication.
+
+8. **Higher Level Metal Formation**:
+   - To achieve suitable metal interconnects, non-planar surface topography is addressed.
+   - Chemical Mechanical Polishing (CMP) is utilized by doping silicon oxide with Boron or Phosphorus to achieve surface planarization.
+   - TiN and blanket Tungsten layers are deposited and subjected to CMP.
+   - An aluminum (Al) layer is added and subjected to photolithography and CMP.
+   - This constitutes the first level of interconnects, and additional interconnect layers are added to reach higher-level metal layers.
+
+9. **Dielectric Layer Addition**:
+   - Finally, a dielectric layer, typically Si3N4, is applied to safeguard the chip.
+
+This complex process results in the creation of advanced integrated circuits with multiple layers of interconnects, essential for modern electronic devices.
+
+<img width="1175" alt="4" src="https://github.com/SahilSira/Advanced_Physical_Design_Using_OpenLane/assets/140998855/2ba6360b-6c46-469e-8300-fb57dd29e4f1">
+
+
+## SKY130 basic layer layout and LEF using inverter
+
+- From Layout, we see the layers which are required for CMOS inverter. Inverter is, PMOS and NMOS connected together.
+- Gates of both PMOS and NMOS are connected together and fed to input(here ,A), NMOS source connected to ground(here, VGND), PMOS source is connected to VDD(here, VPWR), Drains of PMOS and NMOS are connected together and fed to output(here, Y). 
+The First layer in skywater130 is ``localinterconnect layer(locali)`` , above that metal 1 is purple color and metal 2 is pink color.
+If you want to see connections between two different parts, place the cursor over that area and press S one times. The tkson window gives the component name.
+
+![5](https://github.com/SahilSira/Advanced_Physical_Design_Using_OpenLane/assets/140998855/cce056a1-783a-4c56-aa9b-526ce595ffd5)
+
+
+### Library exchange format (.lef)
+
+- The layout of a design is defined in a specific file called LEF.
+-  It includes design rules (tech LEF) and abstract information about the cells. 
+    -  ```Tech LEF``` -  Technology LEF file contains information about the Metal layer, Via Definition and DRCs.
+    -  ```Macro LEF``` -  Contains physical information of the cell such as its Size, Pin, their direction.
+ 
+## Designing standard cell and SPICE extraction in MAGIC 
+
+-  First we need to provide bounding box width and height in tkson window. lets say that width of BBOX is 1.38u and height is 2.72u. The command to give these values to magic is
+   ``` property Fixed BBOX (0 0 1.32 2.72)  ```
+- After this, Vdd, GND segments which are in metal 1 layer, their respective contacts and atlast logic gates layout is defined
+Inorder to know the logical functioning of the inverter, we extract the spice and then we do simulation on the spice. To extract it on spice we open TKCON window, the steps are
+- Know the present directory - ``pwd ``
+- create an extration file -  the command is  `` extract all `` and  ``sky130_inv.ext`` files has been created
+          
+- create spice file using .ext file to be used with our ngspice tool  - the commands are  
+      ``` ext2spice cthresh 0 rthresh 0 ``` - extracts parasatic capcitances also since these are actual layers - nothing is created in the folder
+      ``` ext2spice ``` - a file ```sky130_inv.spice``` has been created.
+  
+![6](https://github.com/SahilSira/Advanced_Physical_Design_Using_OpenLane/assets/140998855/6c6e96ae-19c4-4140-8bed-1f3fa3dad85b)
+
+
+</details>
+
+<details>
+  <summary> SKY130 Tech File Labs </summary>
+  
+## Create Final SPICE Deck
+
+let us see what is inside the spice Deck
+In the spice file subcircuit(subckt), pmos and nmos node connections are defined
+   
+For NMOS  ``` XO Y A VGND VGND sky130_fd_pr_nfet_01v8 ``` . The order is  ``` Cell_name Drain Gate Source Substrate model_name ``` .
+For PMOS  ``` X1 Y A VPWR VPWR sky130_fd_pr_pfet_01v8 ``` . The order is   ``` cell_name Drain Gate Source Substrate model_name ```.
+   
+For transient anaylsis, we would like to define these following connections and extra nodes for these in spice file
+  - VGND to VSS
+  - Supply voltage from VPWR to Ground - extra nodes here will be 0 and VDD with a value of 3.3v 
+  - sweep in/pulse between A pin and VGND (0)
+Before, editing the file, make sure scaling is proper, we measure the value of the gride size from the magic layout and define using `` .option scale=0.01u`` in the Deck file.
+  
+Now keeping the connection in mind, define the required commands in the file. Along with this we need to include libs for nmos ``nshort.lib`` and pmos ``pshort.lib`` and define transient analysis commands too. We comment the subckt since we are trying to input the controls and transient analysis also. Model names are changed to ``nshort_model.0`` and ``pshort_model.0`` according to the libs of nmos and pmos.
+  
+These voltage sources and simulation commands are defined in the Deck file.
+
+   ``
+.include ./libs/pshort.lib
+.include ./libs/nshort.lib
+   VDD VPWR 0 3.3V
+   VSS VGND 0 0V
+   Va A VGND PULSE(0V 3.3V 0 0.1ns 0.1ns 2ns 4ns)
+   .tran 1n 20n
+   .control
+   run
+   .endc
+   .end
+   ``
+   
+![7](https://github.com/SahilSira/Advanced_Physical_Design_Using_OpenLane/assets/140998855/3a1f6c7b-0c4f-4a40-940c-765f68e18f64)
+
+
+## Using ngspice for spice simulation
+  
+Spice Deck is done and now to run spice simulation invoke ngspice in the tool and pass the source file. 
+ 
+  ``` ngspice sky130_inv.spice ```
+  
+On the prompt you can see the values the ngspice has taken. To see the plot, use
+   
+   ``` plot y vs time a ``` 
+   
+![8](https://github.com/SahilSira/Advanced_Physical_Design_Using_OpenLane/assets/140998855/5f479791-7ac3-4caa-b973-8816ba974807)
+
+
+![9](https://github.com/SahilSira/Advanced_Physical_Design_Using_OpenLane/assets/140998855/0a318637-c17f-4478-ad15-5e41c79e9fa8)
+
+## Standard cell characterization of CMOS Iinverter 
+ 
+characterization of the inverter standard cell depends on Four timing parameters
+ 
+ **Rise Transition**: Time taken for the output to rise from 20% to 80% of max value
+ **Fall Transition**: Time taken for the output to fall from 80% to 20% of max value
+ **Cell Rise delay**: difference in time(50% output rise) to time(50% input fall)
+ **Cell Fall delay**: difference in time(50% output fall) to time(50% input rise)
+ 
+ The above timing parameters can be computed by noting down various values from the ngspice waveform.
+ 
+ ``` Rise Transition : 2.25421 - 2.18636 = 0.006785 ns / 67.85ps ```
+ ``` Fall Transitio : 4.09605 - 4.05554 = 0.04051ns/40.51ps ```
+ ```Cell Rise Delay : 2.21701 - 2.14989 = 0.06689ns/66.89ps ```
+ ```Cell Fall Delay : 4.07816 - 4.05011 = 0.02805ns/28.05ps ```
+
+ ## LAB exercise and DRC Challenges
+
+## Intrdocution of Magic and Skywater DRC's
+
+  - In-depth overview of Magic's DRC engine
+  - Introduction to Google/Skywater DRC rules
+  - Lab : Warm-up exercise : Fixing a simple rule error
+  - Lab : Main exercie : Fixing or create a complex error
+
+ # Sky130s pdk intro and Steps to download labs
+  
+  - setup to view the layouts
+  - For extracting and generating views, Google/skywater repo files were built with Magic
+  - Technology file dependency is more for any layout. hence, this file is created first.
+  - Since, Pdk is still under development, there are some unfinished tech files and these are packaged for magic along with lab exercise layout and bunch of stuff into the tar ball
+ 
+We can download the packaged files from web using ``wget `` command. wget stands for web get, a non-interactive file downloader command.
+  
+  ``` wget http://opencircuitdesign.com/open_pdks/archive/drc_tests.tgz```
+  
+once extraction is done, drc_tests file is created and you will have all the information about magic layout for this lab exercise
+
+Now run MAGIC
+
+For better graphics use command ``magic -d XR ``
+
+Now, lets see an example of simple failing set of rules of metal 1 layer.  you can either run this by magic command line `` magic -d XR met1.mag `` or from the magic console window, `` menu - file - open -load file9here, met1.mag) ``
+
+![10](https://github.com/SahilSira/Advanced_Physical_Design_Using_OpenLane/assets/140998855/5ddb27a4-251d-46d7-9ad5-81c8c1ce292b)
+
+
+## Load Sky130 tech rules for drc challenges 
+
+First load the poly file by ``load poly.mag`` on tkcon window.
+
+Finding the error by mouse cursor and find the box area, Poly.9 is violated due to spacing between polyres and poly.
+
+![11](https://github.com/SahilSira/Advanced_Physical_Design_Using_OpenLane/assets/140998855/b40e0df0-3d47-4642-a092-1b8c877f9596)
+
+
+In line
+
+```
+spacing npres *nsd 480 touching_illegal \
+	"poly.resistor spacing to N-tap < %d (poly.9)"
+```
+change to
+
+```
+spacing npres allpolynonres 480 touching_illegal \
+	"poly.resistor spacing to N-tap < %d (poly.9)"
+```
+Also,
+```
+spacing xhrpoly,uhrpoly,xpc alldiff 480 touching_illegal \
+
+	"xhrpoly/uhrpoly resistor spacing to diffusion < %d (poly.9)"
+```
+
+change to 
+
+```
+spacing xhrpoly,uhrpoly,xpc allpolynonres 480 touching_illegal \
+
+	"xhrpoly/uhrpoly resistor spacing to diffusion < %d (poly.9)"
+
+```
+![12](https://github.com/SahilSira/Advanced_Physical_Design_Using_OpenLane/assets/140998855/2f3c88aa-27ee-41e7-8db5-2f63fdaeed3c)
+
+
+</details>
