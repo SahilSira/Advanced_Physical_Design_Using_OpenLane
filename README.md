@@ -1117,3 +1117,17 @@ make mount
 ```
 
 </details>
+
+## Word of Thanks
+I sciencerly thank **Mr. Kunal Gosh**(Founder/**VSD**) for helping me out to complete this flow smoothly.
+
+## Acknowledgement
+- Kunal Ghosh, VSD Corp. Pvt. Ltd.
+- Chatgpt
+- Alwin Shaju,Colleague,IIIT B
+- Emil Jayanth Lal,IIIT B
+- Simarjeet Singh,Colleague,IIIT B
+  
+## Reference 
+- https://www.vsdiat.com
+
